@@ -5,7 +5,7 @@ import com.azevedo.task_bff.business.TarefasService;
 import com.azevedo.task_bff.business.dto.in.TarefasDTORequest;
 import com.azevedo.task_bff.business.dto.out.TarefasDTOResponse;
 import com.azevedo.task_bff.business.enums.StatusNotificacaoEnum;
-import com.azevedo.task_bff.insfrastructure.client.security.SecurityConfig;
+import com.azevedo.task_bff.insfrastructure.security.SecurityConfig;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;

@@ -9,7 +9,7 @@ import com.azevedo.task_bff.business.dto.in.UsuarioDTORequest;
 import com.azevedo.task_bff.business.dto.out.EnderecoDTOResponse;
 import com.azevedo.task_bff.business.dto.out.TelefoneDTOResponse;
 import com.azevedo.task_bff.business.dto.out.UsuarioDTOResponse;
-import com.azevedo.task_bff.insfrastructure.client.security.SecurityConfig;
+import com.azevedo.task_bff.insfrastructure.security.SecurityConfig;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;

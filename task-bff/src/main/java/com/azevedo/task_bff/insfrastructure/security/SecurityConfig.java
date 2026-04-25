@@ -1,4 +1,4 @@
-package com.azevedo.task_bff.insfrastructure.client.security;
+package com.azevedo.task_bff.insfrastructure.security;
 
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
