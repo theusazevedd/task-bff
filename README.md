@@ -4,6 +4,7 @@
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.14-6DB33F?logo=springboot)](https://spring.io/projects/spring-boot)
 [![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-2025.0.2-6DB33F?logo=spring)](https://spring.io/projects/spring-cloud)
 [![Maven](https://img.shields.io/badge/Maven-Build-C71A36?logo=apachemaven)](https://maven.apache.org/)
+[![Docker](https://img.shields.io/badge/Docker-Container-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![OpenFeign](https://img.shields.io/badge/OpenFeign-HTTP%20Client-FF6F00)](https://spring.io/projects/spring-cloud-openfeign)
 [![CI](https://github.com/Javanauta/task-bff/actions/workflows/maven.yml/badge.svg)](https://github.com/Javanauta/task-bff/actions/workflows/maven.yml)
 
@@ -18,6 +19,7 @@ Backend-for-Frontend responsavel por orquestrar os fluxos entre usuario, tarefas
 - [Arquitetura (Visao de Sistema)](#arquitetura-visao-de-sistema)
 - [Tecnologias](#tecnologias)
 - [Como Executar Localmente](#como-executar-localmente)
+- [Docker](#docker)
 - [Configuracao](#configuracao)
 - [Agendamento (Cron Job)](#agendamento-cron-job)
 - [Autenticacao e Seguranca](#autenticacao-e-seguranca)
@@ -88,6 +90,7 @@ flowchart LR
 - Springdoc OpenAPI (Swagger UI)
 - Maven
 - Lombok
+- Docker e Docker Compose (opcional, para execucao em containers)
 
 ---
 
@@ -131,6 +134,74 @@ Windows (PowerShell):
 ```powershell
 .\mvnw.cmd spring-boot:run
 ```
+
+---
+
+## Docker
+
+A imagem do BFF e construida com **multi-stage build**: compilacao com Maven dentro do container e imagem final baseada em **Eclipse Temurin 17 JRE Alpine**, sem depender de artefato `.jar` pre-gerado na maquina host.
+
+### Imagem (`Dockerfile`)
+
+| Etapa   | Base                         | Proposito |
+|---------|------------------------------|-----------|
+| `build` | `maven:3.9.9-eclipse-temurin-17` | `mvn clean package` no modulo `task-bff/` |
+| runtime | `eclipse-temurin:17-jre-alpine` | Executar apenas o JAR em `/app/app.jar` |
+
+Build a partir da **raiz do repositorio** (onde estao `Dockerfile` e a pasta `task-bff/`):
+
+```bash
+docker build -t task-bff:latest .
+```
+
+### Docker Compose (stack local)
+
+O arquivo `docker-compose.yml` na raiz sobe o BFF junto com **user-service**, **task-scheduler-service**, **notification-service**, **PostgreSQL** e **MongoDB**, com URLs internas alinhadas ao binding Spring (`USUARIO_URL`, `AGENDADOR_TAREFAS_URL`, `NOTIFICACAO_URL`).
+
+**Layout esperado:** os outros servicos sao referenciados por caminho relativo ao diretorio pai (por exemplo `..\user-service`). E recomendavel manter os repositorios irmãos na mesma pasta, por exemplo:
+
+```text
+repositorios/
+├── task-bff/              # este repo (compose e Dockerfile na raiz)
+├── user-service/
+├── task-scheduler-service/
+└── notification-service/
+```
+
+Na raiz de `task-bff`:
+
+```bash
+docker compose up --build
+```
+
+Swagger do BFF no host: `http://localhost:8083/swagger-ui/index.html`
+
+### Portas expostas (host)
+
+| Servico / recurso      | Host | Container |
+|------------------------|------|-----------|
+| task-bff               | 8083 | 8083      |
+| user-service           | 8080 | 8080      |
+| task-scheduler-service | 8081 | 8081      |
+| notification-service   | 8082 | 8082      |
+| PostgreSQL             | 5433 | 5432      |
+| MongoDB                | 27017| 27017     |
+
+Dentro da rede Docker, os servicos se resolvem pelo **nome do servico** no Compose (por exemplo `user-service`, `notificacao`); o `container_name` nao substitui esse nome para DNS.
+
+### Variaveis de ambiente (BFF no Compose)
+
+| Variavel                   | Propriedade Spring equivalente   | Exemplo (rede interna) |
+|----------------------------|----------------------------------|-------------------------|
+| `USUARIO_URL`              | `usuario.url`                    | `http://user-service:8080` |
+| `AGENDADOR_TAREFAS_URL`    | `agendador-tarefas.url`          | `http://task-scheduler-service:8081` |
+| `NOTIFICACAO_URL`          | `notificacao.url`                | `http://notificacao:8082` |
+
+As URLs devem incluir o esquema `http://` e a **base** do servico (sem duplicar paths ja usados pelo Feign, como `/tarefas` ou `/usuario`).
+
+### Observacao sobre integracoes em container
+
+O `task-scheduler-service` (e demais micros) tambem precisam apontar para **hostnames da rede Docker** (por exemplo `http://user-service:8080`), nao para `localhost`, quando rodarem dentro do Compose; caso contrario, fluxos como cadastro de tarefa podem falhar com `Connection refused` ao chamar o user-service.
 
 ---
 
@@ -261,6 +332,8 @@ Com a aplicacao em execucao:
 ```text
 task-bff/
 ├── .github/workflows/maven.yml
+├── Dockerfile
+├── docker-compose.yml
 └── task-bff/
     ├── pom.xml
     ├── src/main/java/com/azevedo/task_bff
